@@ -2,11 +2,11 @@
 
 int main()
 {
-  constexpr int LENGTH = 10;
+  constexpr int LENGTH           = 1000001;
   constexpr int VULKAN_DEVICE_ID = 0;
 
   std::shared_ptr<ICompute> app = std::make_unique<SimpleCompute>(LENGTH);
-  if(app == nullptr)
+  if (app == nullptr)
   {
     std::cout << "Can't create render of specified type" << std::endl;
     return 1;
