@@ -71,6 +71,7 @@ void ImGuiRender::InitImGui()
   rtInfo.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
   m_renderpass   = vk_utils::createRenderPass(m_device, rtInfo);
+  init_info.RenderPass = m_renderpass;
   m_framebuffers = vk_utils::createFrameBuffers(m_device, *m_swapchain, m_renderpass);
   m_commandPool  = vk_utils::createCommandPool(m_device, m_queue_FID, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
@@ -80,7 +81,7 @@ void ImGuiRender::InitImGui()
   g_instance = m_instance;
 
   ImGui_ImplVulkan_LoadFunctions(vulkanLoaderFunction);
-  ImGui_ImplVulkan_Init(&init_info, m_renderpass);
+  ImGui_ImplVulkan_Init(&init_info);
 
   // Upload GUI fonts texture
   ImGui_ImplVulkan_CreateFontsTexture();
