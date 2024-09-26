@@ -81,6 +81,7 @@ void ImGuiRender::InitImGui()
   g_instance = m_instance;
 
   ImGui_ImplVulkan_LoadFunctions(vulkanLoaderFunction);
+  init_info.RenderPass = m_renderpass;
   ImGui_ImplVulkan_Init(&init_info);
 
   // Upload GUI fonts texture
@@ -160,5 +161,3 @@ void ImGuiRender::ClearFrameBuffers()
     vkDestroyFramebuffer(m_device, fbuf, VK_NULL_HANDLE);
   m_framebuffers.clear();
 }
-
-
