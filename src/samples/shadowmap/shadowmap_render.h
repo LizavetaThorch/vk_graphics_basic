@@ -77,6 +77,12 @@ private:
 
   etna::GraphicsPipeline m_basicForwardPipeline {};
   etna::GraphicsPipeline m_shadowPipeline {};
+
+  etna::Image vsmImage;
+  etna::Image vsmBlurImage;
+  etna::GraphicsPipeline m_vsmPipeline;
+  etna::ComputePipeline m_blurPipeline;
+
   
   VkSurfaceKHR m_surface = VK_NULL_HANDLE;
   VulkanSwapChain m_swapchain;
