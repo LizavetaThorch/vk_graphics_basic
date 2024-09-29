@@ -4,54 +4,46 @@
 layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(binding = 0, rg32f) readonly uniform image2D inputImage;
+
 layout(binding = 1, rg32f) writeonly uniform image2D outputImage;
 
 void main() {
     ivec2 texSize = imageSize(inputImage);
     ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
 
-    // Проверка выхода за границы
     if (texCoord.x >= texSize.x || texCoord.y >= texSize.y) {
         return;
     }
-
-    // Увеличенное гауссово ядро для еще более сильного размытия
     float kernel[17] = float[](0.005f, 0.011f, 0.021f, 0.033f, 0.048f, 0.065f, 0.082f, 0.097f, 
                                0.105f, 0.097f, 0.082f, 0.065f, 0.048f, 0.033f, 0.021f, 0.011f, 0.005f);
     
-    // Переменные для горизонтального и вертикального размытия
     vec2 horizontalBlur = vec2(0.0);
     vec2 verticalBlur = vec2(0.0);
     float kernelSumH = 0.0;
     float kernelSumV = 0.0;
 
-    // Размытие по горизонтали с радиусом 8
     for (int i = -8; i <= 8; ++i) {
-        ivec2 offsetH = texCoord + ivec2(i, 0);  // Горизонтальное смещение
-        offsetH.x = clamp(offsetH.x, 0, texSize.x - 1);  // Ограничение координат
+        ivec2 offsetH = texCoord + ivec2(i, 0);
+        offsetH.x = clamp(offsetH.x, 0, texSize.x - 1);
 
-        vec2 momentsH = imageLoad(inputImage, offsetH).rg;  // Чтение моментов глубины
-        horizontalBlur += momentsH * kernel[i + 8];  // Применение гауссового ядра по горизонтали
-        kernelSumH += kernel[i + 8];  // Нормализация ядра
+        vec2 momentsH = imageLoad(inputImage, offsetH).rg;
+        horizontalBlur += momentsH * kernel[i + 8];
+        kernelSumH += kernel[i + 8];
     }
 
-    // Размытие по вертикали с радиусом 8
     for (int i = -8; i <= 8; ++i) {
-        ivec2 offsetV = texCoord + ivec2(0, i);  // Вертикальное смещение
-        offsetV.y = clamp(offsetV.y, 0, texSize.y - 1);  // Ограничение координат
+        ivec2 offsetV = texCoord + ivec2(0, i);
+        offsetV.y = clamp(offsetV.y, 0, texSize.y - 1);
 
-        vec2 momentsV = imageLoad(inputImage, offsetV).rg;  // Чтение моментов глубины
-        verticalBlur += momentsV * kernel[i + 8];  // Применение гауссового ядра по вертикали
-        kernelSumV += kernel[i + 8];  // Нормализация ядра
+        vec2 momentsV = imageLoad(inputImage, offsetV).rg;
+        verticalBlur += momentsV * kernel[i + 8];
+        kernelSumV += kernel[i + 8];
     }
 
-    // Нормализуем результаты размытия
     horizontalBlur /= kernelSumH;
     verticalBlur /= kernelSumV;
 
-    // Усредняем горизонтальное и вертикальное размытие
     vec2 combinedBlur = (horizontalBlur + verticalBlur) * 0.5;
 
-    // Запись результата в выходное изображение
     imageStore(outputImage, texCoord, vec4(combinedBlur, 0.0, 0.0));
 }
