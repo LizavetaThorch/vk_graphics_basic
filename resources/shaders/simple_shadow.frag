@@ -31,7 +31,7 @@ void main()
   const bool  outOfView = (shadowTexCoord.x < 0.0001f || shadowTexCoord.x > 0.9999f || shadowTexCoord.y < 0.0091f || shadowTexCoord.y > 0.9999f);
   float shadow;
 
-  if (Params.vsmEnabled) 
+  if (Params.vsm) 
   {
     vec2 vsm = textureLod(blurShadowMap, shadowTexCoord, 0).xy;
 

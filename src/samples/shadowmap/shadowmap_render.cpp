@@ -41,7 +41,7 @@ void SimpleShadowmapRender::AllocateResources()
     .extent     = vk::Extent3D{ 2048, 2048, 1 },
     .name       = "vsm_image",
     .format     = vk::Format::eR32G32Sfloat,
-    .imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled });
+    .imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage });
 
   vsmBlurImage = m_context->createImage(etna::Image::CreateInfo{
     .extent     = vk::Extent3D{ 2048, 2048, 1 },
@@ -169,7 +169,7 @@ void SimpleShadowmapRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, 
 
   //// draw scene to shadowmap
   //
-  if (m_uniforms.vsmEnabled)
+  if (m_uniforms.vsm)
   {
     etna::set_state(a_cmdBuff, vsmImage.get(), 
                     vk::PipelineStageFlagBits2::eColorAttachmentOutput, 
@@ -187,8 +187,8 @@ void SimpleShadowmapRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, 
     DrawSceneCmd(a_cmdBuff, m_lightMatrix, m_shadowPipeline.getVkPipelineLayout());
   }
 
-  // VSM
-  if (m_uniforms.vsmEnabled)
+  // bluring
+  if (m_uniforms.vsm)
   {
     etna::set_state(a_cmdBuff, vsmImage.get(), 
                     vk::PipelineStageFlagBits2::eComputeShader, 
@@ -202,7 +202,7 @@ void SimpleShadowmapRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, 
                     vk::ImageLayout::eGeneral, 
                     vk::ImageAspectFlagBits::eColor);
 
-    auto blur_info = etna::get_shader_program("vsm_compute_blur");
+    auto blur_info = etna::get_shader_program("vsm_blur");
 
     auto set       = etna::create_descriptor_set(blur_info.getDescriptorLayoutId(0), a_cmdBuff, 
                         {

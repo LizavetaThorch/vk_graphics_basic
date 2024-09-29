@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(location = 0) out vec2 out_fragColor;
+layout(location = 0) out vec2 fragColor;
 
 layout(location = 0) in VS_OUT
 {
@@ -13,9 +13,11 @@ layout(location = 0) in VS_OUT
 
 void main()
 {
-    float depth = gl_FragCoord.z;
+    float zDepth = gl_FragCoord.z;
 
-    float moment1 = depth;
-    float moment2 = depth * depth;
-    out_fragColor = vec2(moment1, moment2);
+    vec2 moments;
+    moments.x = zDepth;
+    moments.y = pow(zDepth, 2);
+
+    fragColor = moments;
 }
