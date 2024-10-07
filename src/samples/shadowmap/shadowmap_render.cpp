@@ -17,7 +17,7 @@ void SimpleShadowmapRender::AllocateResources()
 {
   mainViewDepth = m_context->createImage(etna::Image::CreateInfo
   {
-    .extent = vk::Extent3D{m_width, m_height, 1},
+    .extent     = vk::Extent3D{ m_width * 2, m_height * 2, 1 },
     .name = "main_view_depth",
     .format = vk::Format::eD32Sfloat,
     .imageUsage = vk::ImageUsageFlagBits::eDepthStencilAttachment
@@ -38,6 +38,14 @@ void SimpleShadowmapRender::AllocateResources()
     .bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer,
     .memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY,
     .name = "constants"
+  });
+
+  ssaaRenderTarget = m_context->createImage(etna::Image::CreateInfo
+     {
+    .extent     = vk::Extent3D{ m_width * 2, m_height * 2, 1 },
+    .name       = "ssaa_render_arget",
+    .format     = vk::Format::eR32G32B32A32Sfloat,
+    .imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc,
   });
 
   m_uboMappedMem = constants.map();
@@ -109,7 +117,8 @@ void SimpleShadowmapRender::SetupSimplePipeline()
       .vertexShaderInput = sceneVertexInputDesc,
       .fragmentShaderOutput =
         {
-          .colorAttachmentFormats = {static_cast<vk::Format>(m_swapchain.GetFormat())},
+          //.colorAttachmentFormats = {static_cast<vk::Format>(m_swapchain.GetFormat())},
+          .colorAttachmentFormats = { vk::Format::eR32G32B32A32Sfloat },
           .depthAttachmentFormat = vk::Format::eD32Sfloat
         }
     });
@@ -169,6 +178,17 @@ void SimpleShadowmapRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, 
     DrawSceneCmd(a_cmdBuff, m_lightMatrix, m_shadowPipeline.getVkPipelineLayout());
   }
 
+  if (m_ssaa)
+  {
+    frame_width  = m_width * 2;
+    frame_height = m_height * 2;
+  }
+  else
+  {
+    frame_width  = m_width;
+    frame_height = m_height;
+  }
+
   //// draw final scene to screen
   //
   {
@@ -182,7 +202,14 @@ void SimpleShadowmapRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, 
 
     VkDescriptorSet vkSet = set.getVkSet();
 
-    etna::RenderTargetState renderTargets(a_cmdBuff, {0, 0, m_width, m_height}, {{a_targetImage, a_targetImageView}}, mainViewDepth);
+    //etna::RenderTargetState renderTargets(a_cmdBuff, {0, 0, m_width, m_height}, {{a_targetImage, a_targetImageView}}, mainViewDepth);
+
+    etna::RenderTargetState renderTargets (a_cmdBuff,
+        vk::Rect2D{ { 0, 0 }, { frame_width, frame_height } },
+        { 
+           etna::RenderTargetState::AttachmentParams(ssaaRenderTarget.get(), ssaaRenderTarget.getView({})) 
+         },
+        etna::RenderTargetState::AttachmentParams(mainViewDepth.get(), mainViewDepth.getView({})) );
 
     vkCmdBindPipeline(a_cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, m_basicForwardPipeline.getVkPipeline());
     vkCmdBindDescriptorSets(a_cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -190,6 +217,23 @@ void SimpleShadowmapRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, 
 
     DrawSceneCmd(a_cmdBuff, m_worldViewProj, m_basicForwardPipeline.getVkPipelineLayout());
   }
+
+  etna::set_state(a_cmdBuff, ssaaRenderTarget.get(), vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead, vk::ImageLayout::eTransferSrcOptimal, vk::ImageAspectFlagBits::eColor);
+  etna::set_state(a_cmdBuff, a_targetImage, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite, vk::ImageLayout::eTransferDstOptimal, vk::ImageAspectFlagBits::eColor);
+  etna::flush_barriers(a_cmdBuff);
+  
+  VkImageBlit region  = {
+    .srcSubresource   = vk::ImageSubresourceLayers{
+      .aspectMask     = vk::ImageAspectFlagBits::eColor,
+      .mipLevel       = 0,
+      .baseArrayLayer = 0,
+      .layerCount     = 1 },
+      .srcOffsets     = { { 0, 0, 0 }, { static_cast<int32_t>(frame_width), static_cast<int32_t>(frame_height), 1 } },
+      .dstSubresource = vk::ImageSubresourceLayers{ .aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = 0, .baseArrayLayer = 0, .layerCount = 1 },
+      .dstOffsets     = { { 0, 0, 0 }, { static_cast<int32_t>(m_width), static_cast<int32_t>(m_height), 1 } }
+  };
+
+  vkCmdBlitImage(a_cmdBuff, ssaaRenderTarget.get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, a_targetImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region, VK_FILTER_LINEAR);
 
   if(m_input.drawFSQuad)
     m_pQuad->RecordCommands(a_cmdBuff, a_targetImage, a_targetImageView, shadowMap, defaultSampler);

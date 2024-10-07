@@ -49,6 +49,7 @@ private:
   etna::Image shadowMap;
   etna::Sampler defaultSampler;
   etna::Buffer constants;
+  etna::Image ssaaRenderTarget;
 
   VkCommandPool    m_commandPool    = VK_NULL_HANDLE;
 
@@ -85,7 +86,12 @@ private:
   uint32_t m_width  = 1024u;
   uint32_t m_height = 1024u;
   uint32_t m_framesInFlight = 2u;
+
+  uint32_t frame_width;
+  uint32_t frame_height;
+
   bool m_vsync = false;
+  bool m_ssaa{ false };
 
   vk::PhysicalDeviceFeatures m_enabledDeviceFeatures = {};
   std::vector<const char*> m_deviceExtensions;
