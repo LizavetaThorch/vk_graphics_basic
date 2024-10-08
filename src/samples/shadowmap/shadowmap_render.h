@@ -47,8 +47,12 @@ private:
   etna::GlobalContext* m_context;
   etna::Image mainViewDepth;
   etna::Image shadowMap;
+  etna::Buffer samplePositions;
   etna::Sampler defaultSampler;
   etna::Buffer constants;
+
+  etna::Image normal;
+  etna::Image flux;
 
   VkCommandPool    m_commandPool    = VK_NULL_HANDLE;
 
@@ -67,6 +71,7 @@ private:
   {
     float4x4 projView;
     float4x4 model;
+    float4 objectColor;
   } pushConst2M;
 
   float4x4 m_worldViewProj;
@@ -77,6 +82,8 @@ private:
 
   etna::GraphicsPipeline m_basicForwardPipeline {};
   etna::GraphicsPipeline m_shadowPipeline {};
+
+  etna::GraphicsPipeline m_lightingShadePipeline{};
   
   VkSurfaceKHR m_surface = VK_NULL_HANDLE;
   VulkanSwapChain m_swapchain;
@@ -86,6 +93,7 @@ private:
   uint32_t m_height = 1024u;
   uint32_t m_framesInFlight = 2u;
   bool m_vsync = false;
+  bool m_rsm          = false;
 
   vk::PhysicalDeviceFeatures m_enabledDeviceFeatures = {};
   std::vector<const char*> m_deviceExtensions;
